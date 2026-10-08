@@ -27,6 +27,31 @@ _mkdir_workon_home() {
   mkdir -p "$WORKON_HOME"
 }
 
+# Point uv project commands (sync, run, add, ...) at the active venv instead of
+# the project's .venv. Cleared again on deactivate. A UV_PROJECT_ENVIRONMENT
+# set by the user is left alone.
+_uvvw_set_project_env() {
+  if [ -n "${UV_PROJECT_ENVIRONMENT:-}" ] && [ -z "${_UVVW_UV_PROJECT_ENV:-}" ]; then
+    return 0
+  fi
+  export UV_PROJECT_ENVIRONMENT="$1"
+  _UVVW_UV_PROJECT_ENV=1
+
+  # Wrap the deactivate function defined by the venv's activate script
+  local def
+  def="$(typeset -f deactivate)" || return 0
+  eval "_uvvw_venv_deactivate${def#deactivate}"
+  deactivate() {
+    if [ -n "${_UVVW_UV_PROJECT_ENV:-}" ]; then
+      unset UV_PROJECT_ENVIRONMENT _UVVW_UV_PROJECT_ENV
+    fi
+    _uvvw_venv_deactivate "$@"
+    local rc=$?
+    [ "${1:-}" = "nondestructive" ] || unset -f _uvvw_venv_deactivate
+    return $rc
+  }
+}
+
 workon() {
   if [ $# -eq 0 ]; then
     lsvirtualenv
@@ -41,6 +66,11 @@ workon() {
     return 1
   fi
 
+  # activate redefines deactivate before calling it, bypassing our wrapper
+  if [ -n "${_UVVW_UV_PROJECT_ENV:-}" ]; then
+    unset UV_PROJECT_ENVIRONMENT _UVVW_UV_PROJECT_ENV
+  fi
+
   source "$venv_path/$VIRTUALENVWRAPPER_ENV_BIN_DIR/activate" || return 1
 
   # cd to project dir if .project file exists (virtualenvwrapper compatible)
@@ -49,7 +79,7 @@ workon() {
     local project_dir
     IFS= read -r project_dir < "$project_file"
     if [ -d "$project_dir" ]; then
-      cd "$project_dir"
+      cd "$project_dir" && _uvvw_set_project_env "$venv_path"
     elif [ -n "$project_dir" ]; then
       echo "Project directory '$project_dir' from $project_file not found" >&2
     fi

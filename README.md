@@ -40,7 +40,7 @@ A lightweight replacement for [virtualenvwrapper](https://virtualenvwrapper.read
 | Command                       | Description                                                                                |
 | :---------------------------- | :----------------------------------------------------------------------------------------- |
 | `mkvirtualenv [options] <name>` | Creates a new virtual environment named `<name>` and activates it. All options are passed to `uv venv --seed`. |
-| `workon [name]`               | Activates the virtual environment named `<name>`. If no name is given, lists available environments. If `$WORKON_HOME/<name>/.project` contains a valid directory path, `cd`s into it. |
+| `workon [name]`               | Activates the virtual environment named `<name>`. If no name is given, lists available environments. If `$WORKON_HOME/<name>/.project` contains a valid directory path, `cd`s into it and sets `UV_PROJECT_ENVIRONMENT` so `uv sync`/`uv run`/`uv add` use this virtualenv instead of the project's `.venv` (cleared on `deactivate`; a user-set value is left alone). |
 | `rmvirtualenv <name>`          | Removes the virtual environment named `<name>`.                                             |
 | `lsvirtualenv`                 | Lists all available virtual environments.                                                 |
 | `deactivate`                  | Deactivates the current virtual environment. (Standard `venv` command)                      |
