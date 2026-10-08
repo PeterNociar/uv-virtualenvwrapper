@@ -41,7 +41,19 @@ workon() {
     return 1
   fi
 
-  source "$venv_path/$VIRTUALENVWRAPPER_ENV_BIN_DIR/activate"
+  source "$venv_path/$VIRTUALENVWRAPPER_ENV_BIN_DIR/activate" || return 1
+
+  # cd to project dir if .project file exists (virtualenvwrapper compatible)
+  local project_file="$venv_path/.project"
+  if [ -f "$project_file" ]; then
+    local project_dir
+    IFS= read -r project_dir < "$project_file"
+    if [ -d "$project_dir" ]; then
+      cd "$project_dir"
+    elif [ -n "$project_dir" ]; then
+      echo "Project directory '$project_dir' from $project_file not found" >&2
+    fi
+  fi
 }
 
 mkvirtualenv() {
